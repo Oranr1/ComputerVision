@@ -31,7 +31,26 @@ class Solution:
         Returns:
             Homography from source to destination, 3x3 numpy array.
         """
-        homography = 0
+
+        # Homoganic coordiantes
+        src_vec = np.stack((match_p_src[0], match_p_src[1], np.ones(match_p_src.shape[1])), axis=1)
+        dst_vec = np.stack((match_p_dst[0], match_p_dst[1], np.ones(match_p_dst.shape[1])), axis=1)
+        h_mat = np.array([]).reshape(0, 9)
+
+        # Building equation matrix rows
+        for i in range(dst_vec.shape[0]):
+            h_row_u = np.concatenate([src_vec[i], np.zeros(3), -1 * dst_vec[i, 0] * src_vec[i]])
+            h_row_v = np.concatenate([np.zeros(3), src_vec[i], -1 * dst_vec[i, 1] * src_vec[i]])
+            h_mat = np.vstack((h_mat, h_row_u, h_row_v))
+
+        # Compute transpose(H)*H
+        res_mat = np.matmul(h_mat.T, h_mat)
+
+        # Get eigenvalues and eigenvectors
+        eigen_val, eigen_vecs = np.linalg.eig(res_mat)
+        min_eigen_vec = eigen_vecs[:, np.argmin(eigen_val)]
+
+        homography = np.reshape(min_eigen_vec, (3, 3))
         return homography
 
     @staticmethod
@@ -57,8 +76,9 @@ class Solution:
         Returns:
             The forward homography of the source image to its destination.
         """
+
+
         # return new_image
-        """INSERT YOUR CODE HERE"""
         pass
 
     @staticmethod
