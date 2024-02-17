@@ -167,7 +167,20 @@ class Solution:
         """
         # return fit_percent, dist_mse
         """INSERT YOUR CODE HERE"""
-        pass
+        match_p_dst_est = np.dot(homography, match_p_src)
+
+        distance_arr = ((match_p_dst_est[0, :] - match_p_dst[0, :])**2 +
+                        (match_p_dst_est[1, :] - match_p_dst[1, :])**2)**0.5
+
+        indices_of_inliers = (distance_arr <= max_err)
+
+        fit_percent = np.sum(indices_of_inliers) / match_p_src.shape[1]
+
+        inliers_dist_arr = distance_arr[indices_of_inliers]
+
+        dis_mes = np.sum(inliers_dist_arr**2) / np.sum(indices_of_inliers)
+
+        return fit_percent, dis_mes
 
     @staticmethod
     def meet_the_model_points(homography: np.ndarray,
@@ -196,7 +209,17 @@ class Solution:
         """
         # return mp_src_meets_model, mp_dst_meets_model
         """INSERT YOUR CODE HERE"""
-        pass
+        match_p_dst_est = np.dot(homography, match_p_src)
+
+        distance_arr = ((match_p_dst_est[0, :] - match_p_dst[0, :]) ** 2 +
+                        (match_p_dst_est[1, :] - match_p_dst[1, :]) ** 2) ** 0.5
+
+        indices_of_inliers = (distance_arr <= max_err)
+
+        mp_src_meets_model = match_p_src[:, indices_of_inliers]
+        mp_dst_meets_model = match_p_dst[:, indices_of_inliers]
+
+        return mp_src_meets_model, mp_dst_meets_model
 
     def compute_homography(self,
                            match_p_src: np.ndarray,
@@ -216,21 +239,38 @@ class Solution:
         Returns:
             homography: Projective transformation matrix from src to dst.
         """
-        # # use class notations:
-        # w = inliers_percent
-        # # t = max_err
-        # # p = parameter determining the probability of the algorithm to
-        # # succeed
-        # p = 0.99
-        # # the minimal probability of points which meets with the model
-        # d = 0.5
-        # # number of points sufficient to compute the model
-        # n = 4
-        # # number of RANSAC iterations (+1 to avoid the case where w=1)
-        # k = int(np.ceil(np.log(1 - p) / np.log(1 - w ** n))) + 1
-        # return homography
-        """INSERT YOUR CODE HERE"""
-        pass
+        # use class notations:
+        w = inliers_percent
+        # t = max_err
+        # p = parameter determining the probability of the algorithm to
+        # succeed
+        p = 0.99
+        # the minimal probability of points which meets with the model
+        d = 0.5
+        # number of points sufficient to compute the model
+        n = 4
+        # number of RANSAC iterations (+1 to avoid the case where w=1)
+        k = int(np.ceil(np.log(1 - p) / np.log(1 - w ** n))) + 1
+
+        max_fit_percent = 0
+        homography = np.array([])
+
+        for iter in range(k):
+
+            curr_random_indices = np.random.randint(0, match_p_dst.shape[1], n)
+
+            match_p_src_slice = match_p_src[:, curr_random_indices]
+            match_p_dst_slice = match_p_dst[:, curr_random_indices]
+
+            curr_homography = self.compute_homography_naive(match_p_src_slice, match_p_dst_slice)
+
+            fit_percent, dis_mes = self.test_homography(curr_homography, match_p_src, match_p_dst, max_err)
+
+            if fit_percent > max_fit_percent:
+                max_fit_percent = fit_percent
+                homography = curr_homography
+
+        return homography
 
     @staticmethod
     def compute_backward_mapping(
