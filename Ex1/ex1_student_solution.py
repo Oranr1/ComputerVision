@@ -76,10 +76,19 @@ class Solution:
         Returns:
             The forward homography of the source image to its destination.
         """
+        # New image after transformation
+        new_image = np.zeros(dst_image_shape, dtype=np.uint8)
 
+        # iterate through location of each pixel and calculate transformed location
+        for i in range(src_image.shape[0]):
+            for j in range(src_image.shape[1]):
+                point = [float(j), float(i), 1.0]
+                t_point = np.matmul(homography, point)
+                t_point = np.round(t_point[0:2] / t_point[2]).astype(int)
+                if (0<=t_point[0]<dst_image_shape[1]) and (0<=t_point[1]<dst_image_shape[0]): # Check if transformed point is in new boundaries
+                    new_image[t_point[1], t_point[0]] = src_image[i, j, :]
 
-        # return new_image
-        pass
+        return new_image
 
     @staticmethod
     def compute_forward_homography_fast(
@@ -108,9 +117,28 @@ class Solution:
         Returns:
             The forward homography of the source image to its destination.
         """
-        # return new_image
+
         """INSERT YOUR CODE HERE"""
-        pass
+        mesh_x, mesh_y = np.meshgrid(range(src_image.shape[1]), range(src_image.shape[0]))
+        src_coor = np.stack((mesh_x, mesh_y, np.ones(src_image.shape[:2])))
+        src_coor = src_coor.reshape((3, -1))
+
+        dst_coor = np.matmul(homography, src_coor)
+        dst_coor_norm = np.round(dst_coor / dst_coor[2])[:2, :]
+
+        copy_coor = np.append(dst_coor_norm, src_coor[:2, :], axis=0).astype(int)
+
+        mask1 = copy_coor.min(axis=0) >= 0
+        copy_coor = copy_coor[:, mask1]
+        mask2 = copy_coor[0, :] < dst_image_shape[1]
+        copy_coor = copy_coor[:, mask2]
+        mask3 = copy_coor[1, :] < dst_image_shape[0]
+        copy_coor = copy_coor[:, mask3]
+
+        new_image = np.zeros(dst_image_shape, dtype=np.uint8)
+        new_image[copy_coor[1, :], copy_coor[0, :]] = src_image[copy_coor[3, :], copy_coor[2, :], :]
+
+        return new_image
 
     @staticmethod
     def test_homography(homography: np.ndarray,
