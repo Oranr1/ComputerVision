@@ -167,7 +167,11 @@ class Solution:
         """
         # return fit_percent, dist_mse
         """INSERT YOUR CODE HERE"""
+
+        match_p_src = np.vstack((match_p_src, np.ones(match_p_src.shape[1])))
+
         match_p_dst_est = np.dot(homography, match_p_src)
+        match_p_dst_est = match_p_dst_est / match_p_dst_est[2]
 
         distance_arr = ((match_p_dst_est[0, :] - match_p_dst[0, :])**2 +
                         (match_p_dst_est[1, :] - match_p_dst[1, :])**2)**0.5
@@ -300,7 +304,28 @@ class Solution:
 
         # return backward_warp
         """INSERT YOUR CODE HERE"""
-        pass
+        grid_x, grid_y = np.mgrid[0:dst_image_shape[0], 0:dst_image_shape[1]]
+        dst_image_3d_mesh = np.dstack((grid_x, grid_y, np.ones(grid_x.shape)))
+        dst_image_homogenous_coor = dst_image_3d_mesh.reshape(grid_x.shape[0] * grid_x.shape[1], 3).T
+
+        src_image_homogenous_coor = np.dot(backward_projective_homography, dst_image_homogenous_coor)
+        src_image_homogenous_coor = src_image_homogenous_coor / src_image_homogenous_coor[2]
+        src_image_3d_mesh = src_image_homogenous_coor.T.reshape(dst_image_shape)
+
+        src_grid_x = src_image_3d_mesh[:, :, 0]
+        src_grid_y = src_image_3d_mesh[:, :, 1]
+
+        # backward_warp_r = griddata(src_image_homogenous_coor[0:2, :].T, src_image[:, :, 0], (src_grid_x, src_grid_y), method='cubic')
+        # backward_warp_g = griddata(src_image_homogenous_coor[0:2, :].T, src_image[:, :, 1], (src_grid_x, src_grid_y), method='cubic')
+        # backward_warp_b = griddata(src_image_homogenous_coor[0:2, :].T, src_image[:, :, 2], (src_grid_x, src_grid_y), method='cubic')
+
+        backward_warp_r = griddata(dst_image_3d_mesh, src_image[:, :, 0], (src_grid_x, src_grid_y), method='cubic')
+        backward_warp_g = griddata(src_image_homogenous_coor[0:2, :].T, src_image[:, :, 1], (src_grid_x, src_grid_y), method='cubic')
+        backward_warp_b = griddata(src_image_homogenous_coor[0:2, :].T, src_image[:, :, 2], (src_grid_x, src_grid_y), method='cubic')
+
+        backward_warp = np.dstack((backward_warp_r, backward_warp_g, backward_warp_b))
+
+        return backward_warp
 
     @staticmethod
     def find_panorama_shape(src_image: np.ndarray,

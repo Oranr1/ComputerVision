@@ -151,8 +151,8 @@ def main():
 
 
 def your_images_loader():
-    src_img_test = mpimg.imread('src_test.jpg')
-    dst_img_test = mpimg.imread('dst_test.jpg')
+    src_img_test = mpimg.imread('src.jpg')
+    dst_img_test = mpimg.imread('dst.jpg')
 
     DECIMATION_FACTOR = 5.0
     src_img_test = resize(src_img_test,
@@ -164,7 +164,7 @@ def your_images_loader():
                                  int(dst_img_test.shape[0]/DECIMATION_FACTOR)),
                           interpolation=INTER_CUBIC)
 
-    matches_test = scipy.io.loadmat('matches_test')
+    matches_test = scipy.io.loadmat('matches')
 
     match_p_dst = matches_test['match_p_dst'].astype(float)
     match_p_src = matches_test['match_p_src'].astype(float)
@@ -207,7 +207,7 @@ def your_images_main():
     import numpy as np
     student_backward_warp_img = plt.imshow(img.astype(np.uint8))
     plt.title('Backward warp example')
-    # plt.show()
+    plt.show()
 
     # Build student panorama
     tt = tic()
@@ -233,5 +233,5 @@ def your_images_main():
 
 
 if __name__ == '__main__':
-    main()
+    # main()
     your_images_main()
