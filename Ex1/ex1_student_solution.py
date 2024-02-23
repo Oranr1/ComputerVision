@@ -304,24 +304,34 @@ class Solution:
 
         # return backward_warp
         """INSERT YOUR CODE HERE"""
-        grid_x, grid_y = np.mgrid[0:dst_image_shape[0], 0:dst_image_shape[1]]
-        dst_image_3d_mesh = np.dstack((grid_x, grid_y, np.ones(grid_x.shape)))
+        grid_x_t, grid_y_t = np.mgrid[0:dst_image_shape[0], 0:dst_image_shape[1]]
+
+        grid_x = grid_y_t
+        grid_y = np.flip(grid_x_t)
+
+        dst_image_3d_mesh = np.dstack(((grid_x), (grid_y), np.ones(grid_x.shape)))
         dst_image_homogenous_coor = dst_image_3d_mesh.reshape(grid_x.shape[0] * grid_x.shape[1], 3).T
 
         src_image_homogenous_coor = np.dot(backward_projective_homography, dst_image_homogenous_coor)
         src_image_homogenous_coor = src_image_homogenous_coor / src_image_homogenous_coor[2]
+
         src_image_3d_mesh = src_image_homogenous_coor.T.reshape(dst_image_shape)
+        dst_to_src_grid_x = src_image_3d_mesh[:, :, 0]
+        dst_to_src_grid_y = src_image_3d_mesh[:, :, 1]
 
-        src_grid_x = src_image_3d_mesh[:, :, 0]
-        src_grid_y = src_image_3d_mesh[:, :, 1]
+        src_grid_x_t, src_grid_y_t = np.mgrid[0:src_image.shape[0], 0:src_image.shape[1]]
 
-        # backward_warp_r = griddata(src_image_homogenous_coor[0:2, :].T, src_image[:, :, 0], (src_grid_x, src_grid_y), method='cubic')
-        # backward_warp_g = griddata(src_image_homogenous_coor[0:2, :].T, src_image[:, :, 1], (src_grid_x, src_grid_y), method='cubic')
-        # backward_warp_b = griddata(src_image_homogenous_coor[0:2, :].T, src_image[:, :, 2], (src_grid_x, src_grid_y), method='cubic')
+        src_grid_x = src_grid_y_t
+        src_grid_y = np.flip(src_grid_x_t)
 
-        backward_warp_r = griddata(dst_image_3d_mesh, src_image[:, :, 0], (src_grid_x, src_grid_y), method='cubic')
-        backward_warp_g = griddata(src_image_homogenous_coor[0:2, :].T, src_image[:, :, 1], (src_grid_x, src_grid_y), method='cubic')
-        backward_warp_b = griddata(src_image_homogenous_coor[0:2, :].T, src_image[:, :, 2], (src_grid_x, src_grid_y), method='cubic')
+        mesh_mat = np.dstack((src_grid_x, src_grid_y))
+
+        src_coor = mesh_mat.reshape(-1, 2)
+        # src_coor = np.vstack((src_coor.T[1], np.flip(src_coor.T[0]))).T
+
+        backward_warp_r = griddata(src_coor, src_image[:, :, 0].reshape(1, -1)[0], (dst_to_src_grid_x, dst_to_src_grid_y), method='cubic')
+        backward_warp_g = griddata(src_coor, src_image[:, :, 1].reshape(1, -1)[0], (dst_to_src_grid_x, dst_to_src_grid_y), method='cubic')
+        backward_warp_b = griddata(src_coor, src_image[:, :, 2].reshape(1, -1)[0], (dst_to_src_grid_x, dst_to_src_grid_y), method='cubic')
 
         backward_warp = np.dstack((backward_warp_r, backward_warp_g, backward_warp_b))
 

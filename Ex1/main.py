@@ -164,7 +164,7 @@ def your_images_loader():
                                  int(dst_img_test.shape[0]/DECIMATION_FACTOR)),
                           interpolation=INTER_CUBIC)
 
-    matches_test = scipy.io.loadmat('matches')
+    matches_test = scipy.io.loadmat('matches_test')
 
     match_p_dst = matches_test['match_p_dst'].astype(float)
     match_p_src = matches_test['match_p_src'].astype(float)
@@ -179,7 +179,7 @@ def your_images_main():
     # Student Files
     # first run "create_matching_points.py" with your own images to create a mat
     # file with the matching coordinates.
-    max_err = 25  # <<<<< YOU MAY CHANGE THIS
+    max_err = 5  # <<<<< YOU MAY CHANGE THIS
     inliers_percent = 0.8  # <<<<< YOU MAY CHANGE THIS
 
     src_img_test, dst_img_test, match_p_src, match_p_dst = your_images_loader()
