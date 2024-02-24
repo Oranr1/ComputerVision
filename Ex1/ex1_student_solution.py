@@ -213,7 +213,11 @@ class Solution:
         """
         # return mp_src_meets_model, mp_dst_meets_model
         """INSERT YOUR CODE HERE"""
+
+        match_p_src = np.vstack((match_p_src, np.ones(match_p_src.shape[1])))
+
         match_p_dst_est = np.dot(homography, match_p_src)
+        match_p_dst_est = match_p_dst_est / match_p_dst_est[2]
 
         distance_arr = ((match_p_dst_est[0, :] - match_p_dst[0, :]) ** 2 +
                         (match_p_dst_est[1, :] - match_p_dst[1, :]) ** 2) ** 0.5
@@ -268,11 +272,21 @@ class Solution:
 
             curr_homography = self.compute_homography_naive(match_p_src_slice, match_p_dst_slice)
 
-            fit_percent, dis_mes = self.test_homography(curr_homography, match_p_src, match_p_dst, max_err)
+            fit_prob, dis_mes = self.test_homography(curr_homography, match_p_src, match_p_dst, max_err)
 
-            if fit_percent > max_fit_percent:
-                max_fit_percent = fit_percent
-                homography = curr_homography
+            if fit_prob > d:
+
+                valid_match_p_src, valid_match_p_dst = self.meet_the_model_points(curr_homography,
+                                                                      match_p_src,
+                                                                      match_p_dst,
+                                                                      max_err)
+
+                curr_homography = self.compute_homography_naive(valid_match_p_src, valid_match_p_dst)
+                fit_percent, dis_mes = self.test_homography(curr_homography, match_p_src, match_p_dst, max_err)
+
+                if fit_percent > max_fit_percent:
+                    max_fit_percent = fit_percent
+                    homography = curr_homography
 
         return homography
 
@@ -307,7 +321,7 @@ class Solution:
         grid_x_t, grid_y_t = np.mgrid[0:dst_image_shape[0], 0:dst_image_shape[1]]
 
         grid_x = grid_y_t
-        grid_y = np.flip(grid_x_t)
+        grid_y = grid_x_t
 
         dst_image_3d_mesh = np.dstack(((grid_x), (grid_y), np.ones(grid_x.shape)))
         dst_image_homogenous_coor = dst_image_3d_mesh.reshape(grid_x.shape[0] * grid_x.shape[1], 3).T
@@ -319,15 +333,18 @@ class Solution:
         dst_to_src_grid_x = src_image_3d_mesh[:, :, 0]
         dst_to_src_grid_y = src_image_3d_mesh[:, :, 1]
 
+
+
         src_grid_x_t, src_grid_y_t = np.mgrid[0:src_image.shape[0], 0:src_image.shape[1]]
 
         src_grid_x = src_grid_y_t
-        src_grid_y = np.flip(src_grid_x_t)
+        src_grid_y = src_grid_x_t
 
         mesh_mat = np.dstack((src_grid_x, src_grid_y))
 
         src_coor = mesh_mat.reshape(-1, 2)
-        # src_coor = np.vstack((src_coor.T[1], np.flip(src_coor.T[0]))).T
+
+        # backward_warp = griddata(src_coor, src_image[:, :, 0].reshape(1, -1)[0], (grid_x, grid_y), method='cubic')
 
         backward_warp_r = griddata(src_coor, src_image[:, :, 0].reshape(1, -1)[0], (dst_to_src_grid_x, dst_to_src_grid_y), method='cubic')
         backward_warp_g = griddata(src_coor, src_image[:, :, 1].reshape(1, -1)[0], (dst_to_src_grid_x, dst_to_src_grid_y), method='cubic')
@@ -336,6 +353,8 @@ class Solution:
         backward_warp = np.dstack((backward_warp_r, backward_warp_g, backward_warp_b))
 
         return backward_warp
+
+
 
     @staticmethod
     def find_panorama_shape(src_image: np.ndarray,
@@ -427,7 +446,15 @@ class Solution:
         """
         # return final_homography
         """INSERT YOUR CODE HERE"""
-        pass
+
+        t = np.array([[1, 0, pad_left],
+                      [0, 1, pad_up],
+                      [0, 0, 1]])
+
+        final_homography = np.dot(backward_homography, t)
+
+        return final_homography / np.linalg.norm(final_homography)
+
 
     def panorama(self,
                  src_image: np.ndarray,
@@ -470,4 +497,28 @@ class Solution:
         """
         # return np.clip(img_panorama, 0, 255).astype(np.uint8)
         """INSERT YOUR CODE HERE"""
-        pass
+
+        homography = self.compute_homography(match_p_src, match_p_dst,
+                                                          inliers_percent,
+                                                          max_err=25)
+
+        panorama_rows_num, panorama_cols_num, pad_struct = self.find_panorama_shape(src_image,
+                                                                                    dst_image,
+                                                                                    homography)
+
+
+
+        backward_homography = self.compute_backward_mapping(match_p_dst, match_p_src,
+                                                          inliers_percent,
+                                                          max_err=25)
+
+        backward_homography_w_translation = self.add_translation_to_backward_homography(homography, pad_struct, pad_struct)
+
+        backward_mapping = self.compute_backward_mapping(
+                                        backward_projective_homography=backward_homography,
+                                        src_image=src_img,
+                                        dst_image_shape=dst_img.shape)
+
+
+
+        panorama = np.zeros(panorama_rows_num, panorama_cols_num)

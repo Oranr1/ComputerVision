@@ -164,7 +164,7 @@ def your_images_loader():
                                  int(dst_img_test.shape[0]/DECIMATION_FACTOR)),
                           interpolation=INTER_CUBIC)
 
-    matches_test = scipy.io.loadmat('matches_test')
+    matches_test = scipy.io.loadmat('matches')
 
     match_p_dst = matches_test['match_p_dst'].astype(float)
     match_p_src = matches_test['match_p_src'].astype(float)
