@@ -85,7 +85,7 @@ class Solution:
                 point = [float(j), float(i), 1.0]
                 t_point = np.matmul(homography, point)
                 t_point = np.round(t_point[0:2] / t_point[2]).astype(int)
-                if (0<=t_point[0]<dst_image_shape[1]) and (0<=t_point[1]<dst_image_shape[0]): # Check if transformed point is in new boundaries
+                if (0 <= t_point[0] < dst_image_shape[1]) and (0 <= t_point[1] < dst_image_shape[0]): # Check if transformed point is in new boundaries
                     new_image[t_point[1], t_point[0]] = src_image[i, j, :]
 
         return new_image
@@ -126,17 +126,15 @@ class Solution:
         dst_coor = np.matmul(homography, src_coor)
         dst_coor_norm = np.round(dst_coor / dst_coor[2])[:2, :]
 
-        copy_coor = np.append(dst_coor_norm, src_coor[:2, :], axis=0).astype(int)
+        new_coor = np.append(dst_coor_norm, src_coor[:2, :], axis=0).astype(int)
 
-        mask1 = copy_coor.min(axis=0) >= 0
-        copy_coor = copy_coor[:, mask1]
-        mask2 = copy_coor[0, :] < dst_image_shape[1]
-        copy_coor = copy_coor[:, mask2]
-        mask3 = copy_coor[1, :] < dst_image_shape[0]
-        copy_coor = copy_coor[:, mask3]
+        mask = new_coor.min(axis=0) >= 0
+        new_coor = new_coor[:, mask]
+        mask = (new_coor[0, :] < dst_image_shape[1]) & (new_coor[1, :] < dst_image_shape[0])
+        new_coor = new_coor[:, mask]
 
         new_image = np.zeros(dst_image_shape, dtype=np.uint8)
-        new_image[copy_coor[1, :], copy_coor[0, :]] = src_image[copy_coor[3, :], copy_coor[2, :], :]
+        new_image[new_coor[1, :], new_coor[0, :]] = src_image[new_coor[3, :], new_coor[2, :], :]
 
         return new_image
 
@@ -333,8 +331,6 @@ class Solution:
         dst_to_src_grid_x = src_image_3d_mesh[:, :, 0]
         dst_to_src_grid_y = src_image_3d_mesh[:, :, 1]
 
-
-
         src_grid_x_t, src_grid_y_t = np.mgrid[0:src_image.shape[0], 0:src_image.shape[1]]
 
         src_grid_x = src_grid_y_t
@@ -447,8 +443,8 @@ class Solution:
         # return final_homography
         """INSERT YOUR CODE HERE"""
 
-        t = np.array([[1, 0, pad_left],
-                      [0, 1, pad_up],
+        t = np.array([[1, 0, -pad_left],
+                      [0, 1, -pad_up],
                       [0, 0, 1]])
 
         final_homography = np.dot(backward_homography, t)
@@ -495,30 +491,31 @@ class Solution:
             A panorama image.
 
         """
-        # return np.clip(img_panorama, 0, 255).astype(np.uint8)
         """INSERT YOUR CODE HERE"""
 
-        homography = self.compute_homography(match_p_src, match_p_dst,
-                                                          inliers_percent,
-                                                          max_err=25)
+        homography = self.compute_homography(match_p_src,
+                                             match_p_dst,
+                                             inliers_percent,
+                                             max_err)
 
         panorama_rows_num, panorama_cols_num, pad_struct = self.find_panorama_shape(src_image,
                                                                                     dst_image,
                                                                                     homography)
 
+        backward_homography = self.compute_homography(match_p_dst,
+                                                      match_p_src,
+                                                      inliers_percent,
+                                                      max_err)
 
+        backward_homography_w_translation = self.add_translation_to_backward_homography(backward_homography,
+                                                                                        pad_struct.pad_left,
+                                                                                        pad_struct.pad_up)
 
-        backward_homography = self.compute_backward_mapping(match_p_dst, match_p_src,
-                                                          inliers_percent,
-                                                          max_err=25)
+        img_panorama = self.compute_backward_mapping(backward_homography_w_translation,
+                                                     src_image,
+                                                     (panorama_rows_num, panorama_cols_num, 3))
+        img_panorama[pad_struct.pad_up:(pad_struct.pad_up + dst_image.shape[0]),
+                     pad_struct.pad_left:(pad_struct.pad_left + dst_image.shape[1]),
+                     :] = dst_image[:, :, :]
 
-        backward_homography_w_translation = self.add_translation_to_backward_homography(homography, pad_struct, pad_struct)
-
-        backward_mapping = self.compute_backward_mapping(
-                                        backward_projective_homography=backward_homography,
-                                        src_image=src_img,
-                                        dst_image_shape=dst_img.shape)
-
-
-
-        panorama = np.zeros(panorama_rows_num, panorama_cols_num)
+        return np.clip(img_panorama, 0, 255).astype(np.uint8)

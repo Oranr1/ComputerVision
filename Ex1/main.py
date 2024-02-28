@@ -123,6 +123,17 @@ def main():
     print('RANSAC Homography {:5.4f} sec'.format(toc(tt)))
     print(ransac_homography)
 
+    # Present image of RANSAC hom
+    transformed_image_fast = solution.compute_forward_homography_fast(
+        homography=ransac_homography,
+        src_image=src_img,
+        dst_image_shape=dst_img.shape)
+
+    plt.figure()
+    forward_panorama_ransac = plt.imshow(transformed_image_fast)
+    plt.title('Forward Panorama with RANSAC')
+    #plt.show()
+
     # Test RANSAC homography
     tt = tic()
     fit_percent, dist_mse = solution.test_homography(ransac_homography,
@@ -131,6 +142,19 @@ def main():
                                                      max_err)
     print('RANSAC Homography Test {:5.4f} sec'.format(toc(tt)))
     print([fit_percent, dist_mse])
+
+    # backward_homography = solution.compute_homography(match_p_dst, match_p_src,
+    #                                                   inliers_percent,
+    #                                                   max_err=25)
+    # img = solution.compute_backward_mapping(
+    #     backward_projective_homography=backward_homography,
+    #                                   src_image=src_img,
+    #                                   dst_image_shape=dst_img.shape)
+    # plt.figure()
+    # import numpy as np
+    # student_backward_warp_img = plt.imshow(img.astype(np.uint8))
+    # plt.title('Backward warp example')
+    # # plt.show()
 
     # Build panorama
     tt = tic()
@@ -146,13 +170,13 @@ def main():
     plt.figure()
     course_panorama_plot = plt.imshow(img_pan)
     plt.title('Great Panorama')
-    # plt.show()
     plt.show()
+    return
 
 
 def your_images_loader():
-    src_img_test = mpimg.imread('src.jpg')
-    dst_img_test = mpimg.imread('dst.jpg')
+    src_img_test = mpimg.imread('src_test.jpg')
+    dst_img_test = mpimg.imread('dst_test.jpg')
 
     DECIMATION_FACTOR = 5.0
     src_img_test = resize(src_img_test,
@@ -164,7 +188,7 @@ def your_images_loader():
                                  int(dst_img_test.shape[0]/DECIMATION_FACTOR)),
                           interpolation=INTER_CUBIC)
 
-    matches_test = scipy.io.loadmat('matches')
+    matches_test = scipy.io.loadmat('matches_test')
 
     match_p_dst = matches_test['match_p_dst'].astype(float)
     match_p_src = matches_test['match_p_src'].astype(float)
@@ -207,7 +231,7 @@ def your_images_main():
     import numpy as np
     student_backward_warp_img = plt.imshow(img.astype(np.uint8))
     plt.title('Backward warp example')
-    plt.show()
+    # plt.show()
 
     # Build student panorama
     tt = tic()
@@ -233,5 +257,5 @@ def your_images_main():
 
 
 if __name__ == '__main__':
-    # main()
-    your_images_main()
+    main()
+    # your_images_main()
