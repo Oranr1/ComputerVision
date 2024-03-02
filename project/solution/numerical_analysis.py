@@ -25,10 +25,10 @@ def parse_args():
     """
     parser = argparse.ArgumentParser(description='Analyze network performance.')
     parser.add_argument('--model', '-m',
-                        default='XceptionBased', type=str,
+                        default='SimpleNet', type=str,
                         help='Model name: SimpleNet or XceptionBased.')
     parser.add_argument('--checkpoint_path', '-cpp',
-                        default='checkpoints/XceptionBased.pt', type=str,
+                        default='checkpoints/fakes_dataset_SimpleNet_Adam.pt', type=str,
                         help='Path to model checkpoint.')
     parser.add_argument('--dataset', '-d',
                         default='fakes_dataset', type=str,
@@ -58,7 +58,30 @@ def get_soft_scores_and_true_labels(dataset, model):
         gt_labels: an iterable holding the samples' ground truth labels.
     """
     """INSERT YOUR CODE HERE, overrun return."""
-    return torch.rand(100, ), torch.rand(100, ), torch.randint(0, 2, (100, ))
+    dataloader = DataLoader(dataset,
+                            batch_size=32,
+                            shuffle=True)
+
+    soft_A = []
+    soft_B = []
+    ground_truth = []
+
+    for batch_idx, (inputs, targets) in enumerate(dataloader):
+        if device == "cuda:0":
+            inputs = inputs.to("cuda")
+            targets = targets.to("cuda")
+
+        with torch.no_grad():
+            pred = model(inputs)
+            pred = pred.to("cpu")
+
+        pred_real = pred[:, 0]
+        pred_fake = pred[:, 1]
+        soft_A += pred_real
+        soft_B += pred_fake
+        ground_truth += targets.tolist()
+
+    return soft_A, soft_B, ground_truth
 
 
 def plot_roc_curve(roc_curve_figure,
