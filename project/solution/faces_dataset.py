@@ -4,6 +4,7 @@ import os
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
+import torchvision.transforms as transforms
 
 
 class FacesDataset(Dataset):
@@ -26,10 +27,26 @@ class FacesDataset(Dataset):
     def __getitem__(self, index) -> tuple[torch.Tensor, int]:
         """Get a sample and label from the dataset."""
         """INSERT YOUR CODE HERE, overrun return."""
+        if (index < 0 or index >= len(self)):
+            raise Exception("Can't retrieve this index")
 
-        return torch.rand((3, 256, 256)), int(torch.randint(0, 2, size=(1, )))
+        if (index < len(self.real_image_names)):
+            img_path = os.path.join(self.root_path, 'real', self.real_image_names[index])
+            label = 0
+        else:
+            img_path = os.path.join(self.root_path, 'fake', self.fake_image_names[index - len(self.real_image_names)])
+            label = 1
+
+        img = Image.open(img_path)
+        if (self.transform):
+            img = self.transform(img)
+        else:
+            img = transforms.PILToTensor()(img)
+
+        return img, label
+        # return torch.rand((3, 256, 256)), int(torch.randint(0, 2, size=(1, )))
 
     def __len__(self):
         """Return the number of images in the dataset."""
         """INSERT YOUR CODE HERE, overrun return."""
-        return len(self.real_image_names) + len(self.real_image_names)
+        return len(self.real_image_names) + len(self.fake_image_names)
