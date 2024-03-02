@@ -34,6 +34,30 @@ class SimpleNet(nn.Module):
         return two_way_output
 
 
+class CustomNetwork(nn.Module):
+    def __init__(self, original_model):
+        super(CustomNetwork, self).__init__()
+
+        self.features = nn.Sequential(*list(original_model.children())[:-1])
+        self.mlp = nn.Sequential(
+                    nn.Linear(2048, 1000),
+                    nn.ReLU(),
+                    nn.Linear(1000, 256),
+                    nn.ReLU(),
+                    nn.Linear(256, 64),
+                    nn.ReLU(),
+                    nn.Linear(64, 2)
+                    )
+
+        # for p in self.features.parameters():
+        #     p.requires_grad = False
+
+
+    def forward(self, x):
+        f = self.features(x)
+        y = self.mlp(f)
+        return y
+
 def get_xception_based_model() -> nn.Module:
     """Return an Xception-Based network.
 
@@ -42,4 +66,29 @@ def get_xception_based_model() -> nn.Module:
     classification head stated in the exercise.
     """
     """INSERT YOUR CODE HERE, overrun return."""
-    return SimpleNet()
+
+    custom_network = build_xception_backbone(pretrained=True)
+    # print(get_nof_params(custom_network))
+
+    custom_network = CustomNetwork(custom_network)
+
+    # print(get_nof_params(custom_network))
+
+    return custom_network
+    # return SimpleNet()
+
+
+# def get_nof_params(model: nn.Module) -> int:
+#     """Return the number of trainable model parameters.
+#
+#     Args:
+#         model: nn.Module.
+#
+#     Returns:
+#         The number of model parameters.
+#     """
+#     return sum(p.numel() for p in model.parameters() if p.requires_grad)
+#
+#
+# get_xception_based_model()
+

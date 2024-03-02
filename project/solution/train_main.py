@@ -21,16 +21,16 @@ def parse_args():
                         help='learning rate')
     parser.add_argument('--momentum', default=0.9, type=float,
                         help='SGD momentum')
-    parser.add_argument('--batch_size', '-b', default=128, type=int,
+    parser.add_argument('--batch_size', '-b', default=32, type=int,
                         help='Training batch size')
     parser.add_argument('--epochs', '-e', default=2, type=int,
                         help='Number of epochs to run')
-    parser.add_argument('--model', '-m', default='SimpleNet', type=str,
+    parser.add_argument('--model', '-m', default='XceptionBased', type=str,
                         help='Model name: SimpleNet or XceptionBased')
-    parser.add_argument('--optimizer', '-o', default='SGD', type=str,
+    parser.add_argument('--optimizer', '-o', default='Adam', type=str,
                         help='Optimization Algorithm')
     parser.add_argument('--dataset', '-d',
-                        default='fakes_dataset', type=str,
+                        default='synthetic_dataset', type=str,
                         help='Dataset: fakes_dataset or synthetic_dataset.')
 
     return parser.parse_args()
