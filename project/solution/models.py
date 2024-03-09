@@ -46,15 +46,18 @@ class CustomNetwork(nn.Module):
                     nn.ReLU(),
                     nn.Linear(256, 64),
                     nn.ReLU(),
-                    nn.Linear(64, 2)
+                    nn.Linear(64, 2),
+                    nn.Softmax()
                     )
 
-        # for p in self.features.parameters():
-        #     p.requires_grad = False
+        for p in self.features.parameters():
+            p.requires_grad = False
 
 
     def forward(self, x):
         f = self.features(x)
+        f = F.adaptive_avg_pool2d(f, (1, 1))
+        f = f.view(f.size(0), -1)
         y = self.mlp(f)
         return y
 

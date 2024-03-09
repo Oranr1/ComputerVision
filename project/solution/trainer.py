@@ -61,9 +61,11 @@ class Trainer:
 
         for batch_idx, (inputs, targets) in enumerate(train_dataloader):
             """INSERT YOUR CODE HERE."""
+            # if len(targets) == self.batch_size:
             self.optimizer.zero_grad()
 
-            if device == "cuda:0":
+            # if device == "cuda:0":
+            if device.type == 'cuda':
                 inputs = inputs.to("cuda")
                 targets = targets.to("cuda")
 
@@ -84,6 +86,7 @@ class Trainer:
                       f'Acc: {accuracy:.2f}[%] '
                       f'({correct_labeled_samples}/{nof_samples})')
 
+        # torch.cuda.empty_cache()
         return avg_loss, accuracy
 
     def evaluate_model_on_dataloader(
@@ -110,7 +113,8 @@ class Trainer:
 
         for batch_idx, (inputs, targets) in enumerate(dataloader):
             """INSERT YOUR CODE HERE."""
-            if device == "cuda:0":
+            # if device == "cuda:0":
+            if device.type == 'cuda':
                 inputs = inputs.to("cuda")
                 targets = targets.to("cuda")
 

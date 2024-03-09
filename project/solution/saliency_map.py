@@ -25,10 +25,10 @@ def parse_args():
     """
     parser = argparse.ArgumentParser(description='Plot saliency maps.')
     parser.add_argument('--model', '-m',
-                        default='XceptionBased', type=str,
+                        default='SimpleNet', type=str,
                         help='Model name: SimpleNet or XceptionBased.')
     parser.add_argument('--checkpoint_path', '-cpp',
-                        default='checkpoints/XceptionBased.pt', type=str,
+                        default='checkpoints/fakes_dataset_SimpleNet_Adam.pt', type=str,
                         help='Path to model checkpoint.')
     parser.add_argument('--dataset', '-d',
                         default='fakes_dataset', type=str,
@@ -62,7 +62,23 @@ def compute_gradient_saliency_maps(samples: torch.tensor,
         shape Bx256x256 where B is the number of images in samples.
     """
     """INSERT YOUR CODE HERE, overrun return."""
-    return torch.rand(6, 256, 256)
+
+    # class_locations = true_labels == 0
+
+    if len(samples) == 0:
+        print('123123')
+
+    samples.requires_grad_()
+
+    # samples = samples[class_locations, :, :, :]
+
+    outputs = model(samples)
+
+    outputs = outputs[range(len(samples)), true_labels]
+
+    grads = torch.autograd.grad(torch.unbind(outputs), samples)
+
+    return torch.max(torch.abs(grads[0]), 1)[0]
 
 
 def main():  # pylint: disable=R0914, R0915
@@ -127,23 +143,27 @@ def main():  # pylint: disable=R0914, R0915
     # loop through the images in the test set and compute saliency map for
     # each image. Compute the average map of all real face image and
     # all fake face image images.
-    dataloader = DataLoader(test_dataset, batch_size=32, shuffle=True)
+    dataloader = DataLoader(test_dataset, batch_size=6, shuffle=True)
     real_images_saliency_maps = []
     fake_images_saliency_maps = []
 
     for samples, true_labels in dataloader:
+
         fake_samples = samples[true_labels == 1].to(device)
         fake_labels = true_labels[true_labels == 1].to(device)
         real_samples = samples[true_labels == 0].to(device)
         real_labels = true_labels[true_labels == 0].to(device)
-        saliency_maps = compute_gradient_saliency_maps(fake_samples,
-                                                       fake_labels,
-                                                       model)
-        fake_images_saliency_maps.append(saliency_maps.cpu().detach())
-        saliency_maps = compute_gradient_saliency_maps(real_samples,
-                                                       real_labels,
-                                                       model)
-        real_images_saliency_maps.append(saliency_maps.cpu().detach())
+
+        if len(fake_samples) != 0 and len(real_samples) != 0:
+
+            saliency_maps = compute_gradient_saliency_maps(fake_samples,
+                                                           fake_labels,
+                                                           model)
+            fake_images_saliency_maps.append(saliency_maps.cpu().detach())
+            saliency_maps = compute_gradient_saliency_maps(real_samples,
+                                                           real_labels,
+                                                           model)
+            real_images_saliency_maps.append(saliency_maps.cpu().detach())
 
     all_real_saliency_maps = torch.cat(real_images_saliency_maps)
     all_fake_saliency_maps = torch.cat(fake_images_saliency_maps)
@@ -158,13 +178,13 @@ def main():  # pylint: disable=R0914, R0915
 
     mean_saliency_maps = plt.figure()
     plt.subplot(1, 2, 1)
-    mean_map = all_fake_saliency_maps.mean(axis=0)
+    mean_map = all_fake_saliency_maps.nanmean(axis=0)
     mean_map -= mean_map.min()
     mean_map /= mean_map.max()
     plt.imshow(mean_map)
     plt.title('mean of fake images saliency maps')
     plt.subplot(1, 2, 2)
-    mean_map = all_real_saliency_maps.mean(axis=0)
+    mean_map = all_real_saliency_maps.nanmean(axis=0)
     mean_map -= mean_map.min()
     mean_map /= mean_map.max()
     plt.imshow(mean_map)
