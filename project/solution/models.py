@@ -34,32 +34,23 @@ class SimpleNet(nn.Module):
         return two_way_output
 
 
-class CustomNetwork(nn.Module):
-    def __init__(self, original_model):
-        super(CustomNetwork, self).__init__()
-
-        self.features = nn.Sequential(*list(original_model.children())[:-1])
+class CustomHead(nn.Module):
+    def __init__(self):
+        super().__init__()
         self.mlp = nn.Sequential(
                     nn.Linear(2048, 1000),
-                    nn.ReLU(),
+                    nn.ReLU(inplace=True),
                     nn.Linear(1000, 256),
-                    nn.ReLU(),
+                    nn.ReLU(inplace=True),
                     nn.Linear(256, 64),
-                    nn.ReLU(),
+                    nn.ReLU(inplace=True),
                     nn.Linear(64, 2),
-                    nn.Softmax()
                     )
 
-        for p in self.features.parameters():
-            p.requires_grad = False
-
-
     def forward(self, x):
-        f = self.features(x)
-        f = F.adaptive_avg_pool2d(f, (1, 1))
-        f = f.view(f.size(0), -1)
-        y = self.mlp(f)
+        y = self.mlp(x)
         return y
+
 
 def get_xception_based_model() -> nn.Module:
     """Return an Xception-Based network.
@@ -72,9 +63,7 @@ def get_xception_based_model() -> nn.Module:
 
     custom_network = build_xception_backbone(pretrained=True)
     # print(get_nof_params(custom_network))
-
-    custom_network = CustomNetwork(custom_network)
-
+    custom_network.fc = CustomHead()
     # print(get_nof_params(custom_network))
 
     return custom_network
